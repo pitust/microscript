@@ -1,0 +1,1 @@
+require(`./gen-${process.argv[2]||'ts'}.js`);

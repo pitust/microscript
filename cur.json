@@ -1,0 +1,9 @@
+{
+	"type": "SpreadElement",
+	"argument": {
+		"type": "Identifier",
+		"name": "args",
+		"v": true
+	},
+	"v": true
+}

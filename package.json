@@ -1,0 +1,19 @@
+{
+  "name": "microscript",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "@babel/generator": "^7.9.4",
+    "@babel/parser": "^7.9.4",
+    "assemblyscript": "^0.9.3",
+    "typescript": "^3.8.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
