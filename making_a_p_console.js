@@ -3,6 +3,9 @@ let p_console = {}
 p_console.val = {}
 p_console.val.p_log = {}
 p_console.val.p_log.val = {}
-p_console.val.p_log.val.invoke = (...x) => console.log(...x.slice(1).map(v => v.val));
+p_console.val.p_log.val.invoke = doLogging;
+function doLogging(_p1, p2, p3) {
+    console.log(p2, p3);
+}
 let ums = create_d___usermode_start();
 ums.invoke(ums);

@@ -7,15 +7,15 @@ function interopImpureNaming(name) {
     return finfo.impureMap[name] || name;
 }
 function ctp(v) {
-    if (v == 'undefined') return 'void';
-    if (v == 'number') return 'number';
+    if (v === 'undefined') return 'void';
+    if (v === 'number') return 'number';
     if (v.startsWith('func(') && v.endsWith(')')) {
         let id = interopImpureNaming(v.slice(5, -1));
         let args = finfo.ftbl[id].argNames;
         if (finfo.ftbl[id].impure) return id + '_t';
         if (finfo.ftbl[id].abstract) return id + '_t';
-        let idx = (present.findIndex(e => e == id));
-        if (idx == -1) {
+        let idx = (present.findIndex(e => e === id));
+        if (idx === -1) {
             present.push(id);
             let cx = finfo.ftbl[id].ctx.flatMap(e => finfo.cxit[e]);
             let xxpx = cx.map(e => `\n        ${e}: {},`).join('');
@@ -46,7 +46,7 @@ function emitFn(func, name) {
     let glid = 0;
     if (func.abstract) return;
     console.log(func.id)
-    if (func.data[0] && func.data[0][1] == 'PASTE') {
+    if (func.data[0] && func.data[0][1] === 'PASTE') {
         pufhead += '\n' + func.data[0][2];
         return;
     }
@@ -63,8 +63,7 @@ function emitFn(func, name) {
     }
     body += '\n    var curbr = 0;';
     body += '\n    while (true) {';
-    body += '\n        switch (curbr) {';
-    body += '\n        case 0:';
+    body += '\n        if (curbr === 0) {';
     for (let op of func.data) {
         body += '\n                ';
         switch (op[1]) {
@@ -76,13 +75,13 @@ function emitFn(func, name) {
                 break;
             case 'LABEL':
                 chead += `\nconst BR_${op[0]} = ${++glid};`;
-                body = body.slice(0, -4) + `case BR_${op[0]}:`
+                body = body.slice(0, -4) + `}\nif (curbr === BR_${op[0]}) {`
                 break;
             case 'JMP':
-                body += `curbr = BR_${op[0]}; continue;`
+                body += `curbr = BR_${op[0]};`
                 break;
             case 'JMPTRUE':
-                body += `if ((${op[2]}).val) { curbr = BR_${op[0]}; continue; }`
+                body += `if ((${op[2]}).val) { curbr = BR_${op[0]}; }`
                 break;
             case '.':
                 body += `${op[0]}.val = (${opp(op[2])}.${op[3]}.val)`
@@ -101,8 +100,8 @@ function emitFn(func, name) {
             case '<=':
             case '>':
             case '<':
-            case '==':
-            case '!==':
+            case '===':
+            case '!===':
             case '+':
             case '-':
             case '/':

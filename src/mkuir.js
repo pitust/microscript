@@ -134,11 +134,13 @@ let stbl = {
         })
         emit([lend, 'LABEL']);
         emit([lbrback, 'JMPTRUE', compileAll(t)]);
-
+        let funlabel = tv();
+        emit([funlabel, 'LABEL']);
     },
     WhileStatement_pre(node) {
         let lbrback = tv();
         let lend = tv();
+
         emit([lend, 'JMP', '']);
         emit([lbrback, 'LABEL']);
         let t = node.test;

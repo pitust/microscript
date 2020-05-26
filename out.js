@@ -31,14 +31,14 @@ function create_d___usermode_start() {
 
 const BR_v_6 = 1;
 const BR_v_7 = 2;
+const BR_v_13 = 3;
 
 function v_0(p_gh, p_g, p_a, p_b, p_c, p_af) {
     var v_1 = {};
     var v_2 = {};
     var curbr = 0;
     while (true) {
-        switch (curbr) {
-        case 0:
+        if (curbr === 0) {
                 v_1.val = (7) + (p_af.val);
                 v_2.val = (v_1.val) + (p_gh.val);
                 return v_2.val;
@@ -58,10 +58,10 @@ function __usermode_start(p_gh, p_g, p_a, p_b, p_c) {
     var v_11 = {};
     var vcp_v_11 = {};
     var v_12 = {};
+    var v_13 = {};
     var curbr = 0;
     while (true) {
-        switch (curbr) {
-        case 0:
+        if (curbr === 0) {
                 v_3.val = -(1);
                 p_gh.val = (v_3.val);
                 p_g.val = create_d_v_0();
@@ -72,8 +72,9 @@ function __usermode_start(p_gh, p_g, p_a, p_b, p_c) {
                 v_4.val = -(2);
                 v_5.val = p_g.val.invoke(p_g.val, { val: (v_4.val) });
                 p_a.val = (v_5.val);
-                curbr = BR_v_7; continue;;
-            case BR_v_6:;
+                curbr = BR_v_7;;
+            }
+if (curbr === BR_v_6) {
                 p_b.val = (p_a.val);
                 p_c.val = ("ABCD");
                 v_8.val = (p_console.val.p_log.val);
@@ -81,9 +82,12 @@ function __usermode_start(p_gh, p_g, p_a, p_b, p_c) {
                 v_10.val = (p_b.val) - (1);
                 vcp_v_11.val = (v_10.val);
                 p_a.val = (vcp_v_11.val);
-            case BR_v_7:;
+            }
+if (curbr === BR_v_7) {
                 v_12.val = (p_a.val) > (0);
-                if ((v_12).val) { curbr = BR_v_6; continue; };
+                if ((v_12).val) { curbr = BR_v_6; };
+            }
+if (curbr === BR_v_13) {;
                 return;
         }
     }
