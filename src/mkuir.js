@@ -20,8 +20,11 @@ function emit(s) {
     tbl.push(s);
 }
 let vid = 0;
+let da_tvs_made = [];
 function tv() {
-    return 'v_' + (vid++).toString();
+    let tvm = 'v_' + (vid++).toString();
+    da_tvs_made.push(tvm);
+    return tvm;
 }
 let vardata = [[]], varmap = {}, uvarmap = {};
 function ctxflush() {
@@ -104,6 +107,7 @@ let stbl = {
     AssignmentExpression(node) {
         if (node.left.startsWith('p') || node.left.startsWith('vcp')) {
             let t = ('vcp_' + tv());
+            da_tvs_made.push(t);
             uvarmap[t] = node.left;
             varmap[node.left] = t;
             vardata[vardata.length - 1].push(t);
@@ -225,6 +229,7 @@ function visitFn(node, cxs = [], forcename = false) {
                 let opt = Object.fromEntries(s.slice(0, -1).split(',').map(e => {
                     return e.split('=')
                 }));
+                if (opt.TARGET != target && opt.TARGET) throw "File cannot be built for this target!";
                 let orgNm = opts.NAME;
                 Object.assign(opts, opt);
                 if (orgNm != opts.NAME) {
@@ -233,6 +238,7 @@ function visitFn(node, cxs = [], forcename = false) {
             }
         }
     }
+    da_tvs_made = [];
     if (node.type == 'FunctionDeclaration') forcename = false;
     if (opts.COMP_MODE == 'FULL_COMP') for (let k in node) if (node[k] && typeof node[k] == 'object') {
         visitFn(node[k], cctx, forcename);
@@ -243,7 +249,7 @@ function visitFn(node, cxs = [], forcename = false) {
             ccnm = cctx.slice(-1)[0];
             node.fnid = opts.NAME;
             compileAll(node.body);
-            ftbl[opts.NAME] = { data: tbl, ctx: [...cctx], argNames: node.params.map(e => e.name), id: opts.NAME };
+            ftbl[opts.NAME] = { data: tbl, ctx: [...cctx], argNames: node.params.map(e => e.name), id: opts.NAME, temps: da_tvs_made };
         } else if (opts.COMP_MODE == 'PURE_COPY_PASTE') {
             delete node.trailingComments;
             delete node.leadingComments;
@@ -298,23 +304,28 @@ function visitFn(node, cxs = [], forcename = false) {
     }
 }
 function doFile(f, isInternals = false, isRoot = false) {
-    let code = fs.readFileSync(f).toString();
-    let forcename = false;
-    if (!isInternals) {
-        let fname = f.replace(/[\.\/]/g, '__');
-        if (isRoot) {
-            fname = '__usermode_start';
-            forcename = fname;
+    try {
+        let code = fs.readFileSync(f).toString();
+        let forcename = false;
+        if (!isInternals) {
+            let fname = f.replace(/[\.\/]/g, '__');
+            if (isRoot) {
+                fname = '__usermode_start';
+                forcename = fname;
+            }
+            code = `function ${fname}() {\n${code}\n}`;
         }
-        code = `function ${fname}() {\n${code}\n}`;
+        let cg = parse.parse(code, {
+            plugins: ['typescript'],
+            sourceType: 'module'
+        });
+        cleanup_tree(cg);
+        visitFn(cg, [], forcename);
+    } catch (e) {
+        if (e == 'File cannot be built for this target!') return;
+        throw e;
     }
-    let cg = parse.parse(code, {
-        plugins: ['typescript'],
-        sourceType: 'module'
-    });
-    cleanup_tree(cg);
-    visitFn(cg, [], forcename);
 }
 doFile('code.js', false, true);
-doFile('stdlib/internals.ts', true);
+doFile('stdlib/ts/internals.ts', true);
 module.exports = { ftbl, cxit, impureMap };

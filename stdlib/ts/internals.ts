@@ -1,4 +1,5 @@
 // @ts-nocheck ts(1206)
+// MICROSCRIPT(TARGET=ts)
 // MICROSCRIPT(COMP_MODE=PURE_COPY_PASTE,NAME=console_log_t)
 class console_log_t {
     invoke(s1: string, s2: string): void {
