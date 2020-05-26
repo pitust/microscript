@@ -18,8 +18,18 @@ function ctp(v) {
         if (idx == -1) {
             present.push(id);
             let cx = finfo.ftbl[id].ctx.flatMap(e => finfo.cxit[e]);
-            let xxpx = cx.map(e => `\n    ${e} = {};`).join('');
-            chead += `\nclass d_${id} {\n    invoke(${args.map((e, i) => `arg${i}`)}) {\n        return ${id}(${[...cx.map(e => `this.${e}`), ...finfo.ftbl[id].argNames.map((_e, i) => `arg${i}`)].join(', ')});\n    }${xxpx}\n}`;
+            let xxpx = cx.map(e => `\n        ${e}: {},`).join('');
+            chead += `
+function invoke_d_${id}(self, ${args.map((e, i) => `arg${i}`)}) {
+    return ${id}(${[...cx.map(e => `self.${e}`), ...finfo.ftbl[id].argNames.map((_e, i) => `arg${i}`)].join(', ')});
+}
+function create_d_${id}() {
+    return {
+        invoke: invoke_d_${id},
+${xxpx}
+    }
+}
+`;
         }
         return 'd_' + id;
     }
@@ -79,7 +89,7 @@ function emitFn(func, name) {
                 break;
             case 'FNCTX':
                 let t = finfo.ftbl[interopImpureNaming(op[2])].ctxset.slice(0, -1);
-                body += `${op[0]}.val = new d_${op[2]}()`
+                body += `${op[0]}.val = create_d_${op[2]}()`
                 for (let c of t) {
                     body += `;\n                ${op[0]}.val.${c} = ${c}`;
                 }
@@ -105,7 +115,7 @@ function emitFn(func, name) {
             //v_10 := v_9 invoke s:"Hello, usIR!" ctx_0.p_c;
             case 'invoke':
                 let p = `${op[0]}.val = `;
-                body += `${p}${opp(op[2])}.invoke(${op.slice(3).map(opp).map(e => `{ val: (${e}) }`).join(', ')})`;
+                body += `${p}${opp(op[2])}.invoke(${[`${opp(op[2])}`, ...op.slice(3).map(opp).map(e => `{ val: (${e}) }`)].join(', ')})`;
                 break;
             default:
                 body += '/' + '/! error UNK: ' + ['   ', op[0], ':=', op[2] || '', op[1], ...op.slice(3)].join(' ');
