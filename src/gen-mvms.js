@@ -45,7 +45,9 @@ function opp(o) {
 function emitFn(func, name) {
     let glid = 0;
     if (func.abstract) return;
-    console.log(func.id)
+    for (let op of func.data) {
+        console.log(op[0], ':=', op[2], op[1], ...op.slice(3))
+    }
     if (func.data[0] && func.data[0][1] === 'PASTE') {
         pufhead += '\n' + func.data[0][2];
         return;
@@ -62,8 +64,10 @@ function emitFn(func, name) {
         body += `\n    var ${v} = {};`;
     }
     body += '\n    var curbr = 0;';
+    body += '\n    var fallthrough_allow = false;';
     body += '\n    while (true) {';
     body += '\n        if (curbr === 0) {';
+    let obrs = '0';
     for (let op of func.data) {
         body += '\n                ';
         switch (op[1]) {
@@ -75,7 +79,8 @@ function emitFn(func, name) {
                 break;
             case 'LABEL':
                 chead += `\nconst BR_${op[0]} = ${++glid};`;
-                body = body.slice(0, -4) + `}\nif (curbr === BR_${op[0]}) {`
+                body = body.slice(0, -4) + `fallthrough_allow=curbr === ${obrs};}\n if (curbr === BR_${op[0]} || fallthrough_allow) {\ncurbr = BR_${op[0]};\nfallthrough_allow = false;`;
+                obrs = 'BR_' + op[0];
                 break;
             case 'JMP':
                 body += `curbr = BR_${op[0]};`
@@ -87,7 +92,7 @@ function emitFn(func, name) {
                 body += `${op[0]}.val = (${opp(op[2])}.${op[3]}.val)`
                 break;
             case 'FNCTX':
-                let t = finfo.ftbl[interopImpureNaming(op[2])].ctxset.slice(0, -1);
+                let t = finfo.ftbl[op[2]].ctxset.slice(0, -1);
                 body += `${op[0]}.val = create_d_${op[2]}()`
                 for (let c of t) {
                     body += `;\n                ${op[0]}.val.${c} = ${c}`;
@@ -96,6 +101,26 @@ function emitFn(func, name) {
             case 'PASTE':
                 pufhead += '\n' + op[2];
                 return;
+            case 'CGLOB':
+                chead += `\nlet ${op[0]};`;
+                body += `${op[0]} = ${op[2]}`;
+                break;
+            case 'IMPORT':
+                body += `${op[0]} = ${op[2]}`;
+                break;
+            case 'GSTUB':
+                chead += `
+let cache_${op[0]}_done = false;
+function exec_${op[0]}() {
+    if (cache_${op[0]}_done) return;
+    cache_${op[0]}_done = true;
+    let x = create_d_${name}();
+    x.invoke(x);
+}`;
+                break;
+            case 'RUN_XT':
+                body += `${op[0]}()`;
+                break;
             case '>=':
             case '<=':
             case '>':

@@ -1,8 +1,13 @@
 {
-	"type": "SpreadElement",
-	"argument": {
+	"type": "ImportSpecifier",
+	"imported": {
 		"type": "Identifier",
-		"name": "args",
+		"name": "x",
+		"v": true
+	},
+	"local": {
+		"type": "Identifier",
+		"name": "x",
 		"v": true
 	},
 	"v": true

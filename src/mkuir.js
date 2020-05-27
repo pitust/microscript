@@ -1,6 +1,7 @@
 let parse = require('@babel/parser');
 let g = require('@babel/generator');
 let fs = require('fs');
+let toload = [], loaded = [];
 function cleanup_tree(node) {
     if (node instanceof Array) node.forEach(cleanup_tree);
     delete node.loc;
@@ -18,6 +19,12 @@ let impureMap = {};
 
 function emit(s) {
     tbl.push(s);
+}
+function xmap(file, id) {
+    return file.replace(/\./g, '_dot').replace(/\//g, '__') + '___' + id;
+}
+function xmap_fo(file) {
+    return file.replace(/\./g, '_dot').replace(/\//g, '__');
 }
 let vid = 0;
 let da_tvs_made = [];
@@ -56,6 +63,7 @@ function ctxflush() {
     vardata[vardata.left - 1] = [];
 }
 let ccnm = '';
+let cfilename = ''
 let stbl = {
     File(node) {
         return node.program;
@@ -173,7 +181,28 @@ let stbl = {
     CommentLine(node) {
         if (node.done) return;
         node.done = true;
-    }
+    },
+    ExportNamedDeclaration_pre(node,) {
+        if (node.declaration.type == 'VariableDeclaration') {
+            return ([xmap(cfilename, node.declaration.declarations[0].id.name), 'CGLOB', 'p_' + node.declaration.declarations[0].id.name]);
+        } else if (node.declaration.type == 'FunctionDeclaration') {
+            return ([xmap(cfilename, node.declaration.id.name), 'CGLOB', node.declaration.id.name]);
+        } else throw new Error("Nosup :(");
+    },
+    ExportNamedDeclaration(_, v) { emit(v) },
+    ImportDeclaration_pre(node) {
+        let file = node.source.value;
+        emit(['exec_' + xmap_fo(file), 'RUN_XT']);
+        if (!loaded.includes(file) && !toload.includes(file)) {
+            toload.push(file);
+        }
+        for (let s of node.specifiers) {
+            cxit[ccnm].push('p_' + s.imported.name);
+            emit(['p_' + s.imported.name, 'IMPORT', xmap(file, s.imported.name)]);
+        }
+    },
+    ImportDeclaration() { },
+    ImportSpecifier() { }
 }
 function compileAll(node) {
     if (node instanceof Array) {
@@ -201,7 +230,7 @@ function cx() {
     return nm;
 }
 let ftbl = {};
-function visitFn(node, cxs = [], forcename = false) {
+function visitFn(node, cxs = [], forcename = false, isTopFn = false) {
     if (node instanceof Array) {
         node.forEach(e => visitFn(e, cxs, forcename));
     }
@@ -250,6 +279,9 @@ function visitFn(node, cxs = [], forcename = false) {
             tbl = [];
             ccnm = cctx.slice(-1)[0];
             node.fnid = opts.NAME;
+            if (isTopFn) {
+                tbl.push([xmap_fo(isTopFn), 'GSTUB']);
+            }
             compileAll(node.body);
             ftbl[opts.NAME] = { data: tbl, ctx: [...cctx], argNames: node.params.map(e => e.name), id: opts.NAME, temps: da_tvs_made };
         } else if (opts.COMP_MODE == 'PURE_COPY_PASTE') {
@@ -305,29 +337,43 @@ function visitFn(node, cxs = [], forcename = false) {
         }
     }
 }
-function doFile(f, isInternals = false, isRoot = false) {
+function doFile(f, mappedName, isInternals = false, isRoot = false) {
     try {
+        cfilename = mappedName;
         let code = fs.readFileSync(f).toString();
         let forcename = false;
+        let cg = parse.parse(code, {
+            plugins: ['typescript'],
+            sourceType: 'module'
+        });
         if (!isInternals) {
             let fname = f.replace(/[\.\/]/g, '__');
             if (isRoot) {
                 fname = '__usermode_start';
                 forcename = fname;
             }
-            code = `function ${fname}() {\n${code}\n}`;
+            cg = ({
+                type: "FunctionDeclaration",
+                id: {
+                    name: fname
+                },
+                params: [],
+                body: {
+                    type: "BlockStatement",
+                    body: cg.program.body
+                }
+            })
         }
-        let cg = parse.parse(code, {
-            plugins: ['typescript'],
-            sourceType: 'module'
-        });
         cleanup_tree(cg);
-        visitFn(cg, [], forcename);
+        visitFn(cg, [], forcename, cfilename);
     } catch (e) {
         if (e == 'File cannot be built for this target!') return;
         throw e;
     }
 }
-doFile('code.js', false, true);
-doFile('stdlib/ts/internals.ts', true);
+doFile('input/entry.js', './entry.js', false, true);
+for (let f of toload) {
+    loaded.push(f);
+    doFile('input/' + f, f, false);
+}
 module.exports = { ftbl, cxit, impureMap };

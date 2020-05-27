@@ -1,4 +1,5 @@
-let gh = -1;
+import { x } from './module_x.js';
+let gh = x - 4;
 function g(af) {
     return 7 + af + gh;
 }
